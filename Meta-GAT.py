@@ -100,7 +100,7 @@ for epoch in range(epochs):
 
     for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(dataset_train):
         accs_train, loss = meta(x_spt, y_spt, x_qry, y_qry)
-        # print("@@@@@@@@@@@")
+
         if step % 100 == 0:
             print("epoch:", epoch, "step:", step)
             print(accs_train)
