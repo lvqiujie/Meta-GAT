@@ -2,8 +2,8 @@ from rdkit import Chem
 from rdkit.Chem import MolFromSmiles
 import numpy as np
 import pickle
-
 import random
+
 degrees = [0, 1, 2, 3, 4, 5]
 
 
