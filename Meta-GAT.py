@@ -85,8 +85,6 @@ dataset_train = data.DataLoader(dataset=data_train, batch_size=1, shuffle=True)
 data_test = MyDataset(remained_df, k_spt, k_spt_pos, k_spt_neg, k_query, tasks[task_num:], test_task_num, test_batchsz, type="test")
 dataset_test = data.DataLoader(dataset=data_test, batch_size=1, shuffle=True)
 
-# data_all = MyDataset(remained_df, n_way, k_spt, k_query, tasks[task_num:], test_task_num, test_batchsz)
-# dataset_all = data.DataLoader(dataset=data_all, batch_size=1, shuffle=True)
 
 x_atom, x_bonds, x_atom_index, x_bond_index, x_mask, smiles_to_rdkit_list = get_smiles_array(
     [remained_smiles[0]], feature_dicts)
