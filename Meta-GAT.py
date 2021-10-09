@@ -108,10 +108,7 @@ for epoch in range(epochs):
 
         if step % 1000 == 0:
             accs = [[] for i in range(test_task_num)]
-            n = 0
             for x_spt, y_spt, x_qry, y_qry in dataset_test:
-                n = n + 1
-                # print(n, "###############")
                 task_num = len(x_spt)
                 shot = len(x_spt[0])
                 query_size = len(x_qry[0])
