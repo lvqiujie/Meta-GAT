@@ -6,7 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 from copy import deepcopy, copy
 import torch.utils.data as data
-from MetaLearner_map import *
+from MetaLearner import *
 from model import Fingerprint
 from smiles_feature import *
 from dataset import *
@@ -41,7 +41,7 @@ learning_rate = 2.5
 output_units_num = 2
 radius = 2
 T = 2
-batchsz = 10
+batchsz = 1000
 test_batchsz = 20
 epochs = 10000
 
