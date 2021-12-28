@@ -6,12 +6,14 @@ Meta-GAT is used to deal with the molecular property prediction task of the scar
 
 # Requirements
 
+```
 PyTorch >= 1.2.0
 Numpy >= 1.18.5
 Rdkit >= 2020.09.1.0
 scikit-learn >= 0.23.2
 scipy >= 1.1.0
 
+```
 
 # Usage
 
