@@ -27,17 +27,14 @@ k_spt = 2 ## support data 的个数
 k_spt_pos = 1   # k-shot positive
 k_spt_neg = 1   # k-shot negative
 k_query = 128  ## query data 的个数
-task_num = 9
+task_num = 8
 test_task_num = 3
 batch_size = task_num
 
 
 p_dropout = 0.2
 fingerprint_dim = 200
-# also known as l2_regularization_lambda
-weight_decay = 5
-learning_rate = 2.5
-# for regression model
+
 output_units_num = 2
 radius = 2
 T = 2
