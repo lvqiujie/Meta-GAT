@@ -4,6 +4,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from copy import deepcopy
+from scipy.stats import wilcoxon
+from sklearn.metrics import cohen_kappa_score
+from ptflops import get_model_complexity_info
+from fvcore.nn import FlopCountAnalysis, parameter_count_table
+import time, datetime
 
 class MetaLearner(nn.Module):
     def __init__(self, model):
@@ -12,7 +17,7 @@ class MetaLearner(nn.Module):
         self.update_step_test = 5
         self.net = model
         self.meta_lr = 0.001
-        self.base_lr = 0.1
+        self.base_lr = 0.0001
         self.meta_optim = torch.optim.Adam(self.net.parameters(), lr=self.meta_lr)
 
     #         self.meta_optim = torch.optim.SGD(self.net.parameters(), lr = self.meta_lr, momentum = 0.9, weight_decay=0.0005)
@@ -29,7 +34,17 @@ class MetaLearner(nn.Module):
         y_qry = y_qry.view(task_num, query_size).long().cuda()
         for i in range(task_num):
             ## 第0步更新
+            start_time = datetime.datetime.now()
             y_hat = self.net(x_spt[i], params=list(self.net.parameters()))  # (ways * shots, ways)
+            end_time = datetime.datetime.now()
+            # print(" 一次前向计算 耗时: {}秒".format(end_time - start_time))
+            # flops, params = get_model_complexity_info(self.net, (x_spt[i], self.net.parameters()), as_strings=True, print_per_layer_stat=True)
+            # print("%s |%s |%s" % ("mate_gat", flops, params))
+            #
+            # tensor = (x_spt[i], list(self.net.parameters()))
+            # flops = FlopCountAnalysis(self.net, tensor)
+            # print("FLOPs: ", flops.total())
+
             loss = F.cross_entropy(y_hat, y_spt[i])
             grad = torch.autograd.grad(loss, self.net.parameters())
             # aa = list(self.net.parameters())[0]
@@ -43,7 +58,7 @@ class MetaLearner(nn.Module):
                 # aa1 = list(self.net.parameters())[0]
                 y_hat = self.net(x_qry[i], list(self.net.parameters()))
                 loss_qry = F.cross_entropy(y_hat, y_qry[i])
-                loss_list_qry[0] += loss_qry
+                loss_list_qry[0] += loss_qry.item()
                 pred_qry = F.softmax(y_hat, dim=1).argmax(dim=1)  # size = (75)
                 correct = torch.eq(pred_qry, y_qry[i]).sum().item()
                 correct_list[0] += correct
@@ -54,7 +69,7 @@ class MetaLearner(nn.Module):
                 # aa3 = list(fast_weights)[0]
                 y_hat = self.net(x_qry[i], fast_weights)
                 loss_qry = F.cross_entropy(y_hat, y_qry[i])
-                loss_list_qry[1] += loss_qry
+                loss_list_qry[1] += loss_qry.item()
                 pred_qry = F.softmax(y_hat, dim=1).argmax(dim=1)  # size = (75)
                 correct = torch.eq(pred_qry, y_qry[i]).sum().item()
                 correct_list[1] += correct
@@ -72,7 +87,7 @@ class MetaLearner(nn.Module):
                     with torch.no_grad():
                         y_hat = self.net(x_qry[i], params=fast_weights)
                         loss_qry = F.cross_entropy(y_hat, y_qry[i])
-                        loss_list_qry[k + 1] += loss_qry
+                        loss_list_qry[k + 1] += loss_qry.item()
                 else:
                     y_hat = self.net(x_qry[i], params=fast_weights)
                     loss_qry = F.cross_entropy(y_hat, y_qry[i])
@@ -100,7 +115,10 @@ class MetaLearner(nn.Module):
         correct_list = [0 for _ in range(self.update_step_test + 1)]
 
         new_net = deepcopy(self.net)
-        y_hat = new_net(x_spt, list(new_net.parameters()))
+        start_time = datetime.datetime.now()
+        y_hat = new_net(x_spt, list(new_net.parameters()), "test_tranfer")
+        end_time = datetime.datetime.now()
+        # print(" 测试 一次前向计算 耗时: {}秒".format(end_time - start_time))
         loss = F.cross_entropy(y_hat, y_spt)
         grad = torch.autograd.grad(loss, new_net.parameters())
         fast_weights = list(map(lambda p: p[1] - self.base_lr * p[0], zip(grad, new_net.parameters())))
@@ -108,30 +126,37 @@ class MetaLearner(nn.Module):
         # 在query集上测试，计算准确率
         # 这一步使用更新前的数据
         with torch.no_grad():
-            y_hat = new_net(x_qry, list(new_net.parameters()))
+            y_hat = new_net(x_qry, list(new_net.parameters()), "test_tranfer")
             pred_qry = F.softmax(y_hat, dim=1).argmax(dim=1)  # size = (75)
             correct = torch.eq(pred_qry, y_qry).sum().item()
             correct_list[0] += correct
 
+            # w, p = wilcoxon(pred_qry.cpu().numpy(), y_qry.cpu().numpy())
+            # print("wilcoxon", w, p)
+            # print("kappa", cohen_kappa_score(pred_qry.cpu().numpy(), y_qry.cpu().numpy()))
+
         # 使用更新后的数据在query集上测试。
         with torch.no_grad():
-            y_hat = new_net(x_qry, params=fast_weights)
+            y_hat = new_net(x_qry, fast_weights, "test_tranfer")
             pred_qry = F.softmax(y_hat, dim=1).argmax(dim=1)  # size = (75)
             correct = torch.eq(pred_qry, y_qry).sum().item()
             correct_list[1] += correct
 
         for k in range(1, self.update_step_test):
-            y_hat = new_net(x_spt, params=fast_weights)
+            y_hat = new_net(x_spt, fast_weights, "test_tranfer")
             loss = F.cross_entropy(y_hat, y_spt)
             grad = torch.autograd.grad(loss, fast_weights)
             fast_weights = list(map(lambda p: p[1] - self.base_lr * p[0], zip(grad, fast_weights)))
 
-            y_hat = new_net(x_qry, fast_weights)
-
+            y_hat = new_net(x_qry, fast_weights, "test_tranfer")
             with torch.no_grad():
                 pred_qry = F.softmax(y_hat, dim=1).argmax(dim=1)
                 correct = torch.eq(pred_qry, y_qry).sum().item()
                 correct_list[k + 1] += correct
+
+                # w, p = wilcoxon(pred_qry.cpu().numpy(), y_qry.cpu().numpy())
+                # print("wilcoxon", w, p)
+                # print("kappa", cohen_kappa_score(pred_qry.cpu().numpy(), y_qry.cpu().numpy()))
 
         del new_net
         accs = np.array(correct_list) / query_size
