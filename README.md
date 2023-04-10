@@ -24,5 +24,10 @@ python Meta-GAT.py
 
 
 #  Reference
-
-Qiujie Lv, Guanxing Chen, Ziduo Yang, Weihe Zhong and Calvin Yu-Chian Chen. Meta Learning with Graph Attention Networks for Low Data Drug Discovery.
+@article{lv2023meta,
+  title={Meta Learning With Graph Attention Networks for Low-Data Drug Discovery},
+  author={Lv, Qiujie and Chen, Guanxing and Yang, Ziduo and Zhong, Weihe and Chen, Calvin Yu-Chian},
+  journal={IEEE Transactions on Neural Networks and Learning Systems},
+  year={2023},
+  publisher={IEEE}
+}
