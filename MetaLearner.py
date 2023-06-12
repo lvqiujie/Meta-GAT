@@ -131,9 +131,6 @@ class MetaLearner(nn.Module):
             correct = torch.eq(pred_qry, y_qry).sum().item()
             correct_list[0] += correct
 
-            # w, p = wilcoxon(pred_qry.cpu().numpy(), y_qry.cpu().numpy())
-            # print("wilcoxon", w, p)
-            # print("kappa", cohen_kappa_score(pred_qry.cpu().numpy(), y_qry.cpu().numpy()))
 
         # 使用更新后的数据在query集上测试。
         with torch.no_grad():
